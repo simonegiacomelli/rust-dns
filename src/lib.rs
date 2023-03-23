@@ -4,10 +4,7 @@ use std::{thread, vec};
 
 mod find_udp_port;
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
+// https://github.com/akapila011/DNS-Server
 fn start_dns_server_thread(port: u16) {
     thread::spawn(move || { start_dns_server(port) });
 }
