@@ -35,7 +35,7 @@ mod test {
     fn test_no_reuse() {
         let p1 = find_port().unwrap();
         let p2 = find_port().unwrap();
-        // println!("p1=");
+        println!("p1={} p2={}", p1, p2);
         assert_ne!(p1, p2)
     }
 }
