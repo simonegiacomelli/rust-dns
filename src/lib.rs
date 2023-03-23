@@ -13,10 +13,13 @@ fn start_dns_server_thread(port: u16) {
 }
 
 fn start_dns_server(port: u16) {
-    let bind = UdpSocket::bind(("0.0.0.0", port));
-    let mut buf: Vec<u8> = Vec::with_capacity(4096);
-    let (size, origin) = bind.unwrap().recv_from(&mut buf).unwrap();
-    println!("size={} origin={}", size, origin)
+    let bind = UdpSocket::bind(("0.0.0.0", port)).unwrap();
+    let mut buf: Vec<u8> = vec![0; 4096];
+    loop {
+        let (size, origin) = bind.recv_from(&mut buf).unwrap();
+        let x = &buf[0..size];
+        println!("size={} origin={} buffer=`{:02X?}`", size, origin, x)
+    }
 }
 
 #[cfg(test)]
