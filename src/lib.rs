@@ -1,6 +1,8 @@
 use std::net::UdpSocket;
 use std::thread::Thread;
 use std::{thread, vec};
+use std::fmt::DebugStruct;
+use std::ops::Add;
 
 mod find_udp_port;
 
@@ -20,7 +22,17 @@ fn start_dns_server(port: u16) {
 }
 
 fn decode_domain(buf: &[u8]) -> Result<Vec<String>, String> {
-    return Err("todo".to_string());
+    let mut index = 0;
+    let mut result: Vec<String> = Vec::new();
+    loop {
+        let mut length = buf[index] as usize;
+        if length == 0 { break; };
+        let slice = &buf[(index + 1)..(index + 1 + length)];
+        let part = std::str::from_utf8(&slice).unwrap().to_string();
+        result.push(part);
+        index += length + 1;
+    }
+    return Ok(result);
 }
 
 #[cfg(test)]
