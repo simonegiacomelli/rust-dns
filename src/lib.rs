@@ -27,10 +27,11 @@ fn decode_domain(buf: &[u8]) -> Result<Vec<String>, String> {
     loop {
         let mut length = buf[index] as usize;
         if length == 0 { break; };
-        let slice = &buf[(index + 1)..(index + 1 + length)];
+        index += 1;
+        let slice = &buf[index..(index + length)];
         let part = std::str::from_utf8(&slice).unwrap().to_string();
         result.push(part);
-        index += length + 1;
+        index += length;
     }
     return Ok(result);
 }
