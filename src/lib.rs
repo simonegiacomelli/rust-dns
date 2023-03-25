@@ -7,6 +7,7 @@ use std::ops::Add;
 mod find_udp_port;
 
 // https://github.com/akapila011/DNS-Server
+// https://mislove.org/teaching/cs4700/spring11/handouts/project1-primer.pdf
 fn start_dns_server_thread(port: u16) {
     thread::spawn(move || { start_dns_server(port) });
 }
@@ -29,8 +30,7 @@ fn decode_domain(buf: &[u8]) -> Result<Vec<String>, String> {
         if length == 0 { break; };
         index += 1;
         let slice = &buf[index..(index + length)];
-        let part = std::str::from_utf8(&slice).unwrap().to_string();
-        result.push(part);
+        result.push(std::str::from_utf8(&slice).unwrap().to_string());
         index += length;
     }
     return Ok(result);
