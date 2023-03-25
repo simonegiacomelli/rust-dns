@@ -14,13 +14,25 @@ fn start_dns_server_thread(port: u16) {
 }
 
 fn start_dns_server(port: u16) {
-    let bind = UdpSocket::bind(("0.0.0.0", port)).unwrap();
+    let socket = UdpSocket::bind(("0.0.0.0", port)).unwrap();
     let mut buf: Vec<u8> = vec![0; 4096];
     loop {
-        let (size, origin) = bind.recv_from(&mut buf).unwrap();
+        let (size, origin) = socket.recv_from(&mut buf).unwrap();
         let x = &buf[0..size];
-        println!("size={} origin={} buffer=`{:02X?}`", size, origin, x)
+        println!("size={} origin={} buffer=`{:02X?}`", size, origin, x);
+        let response = build_response(x);
+        println!("response response");
+        socket.send_to(&response, origin).unwrap();
     }
+}
+
+fn build_response(buf: &[u8]) -> Vec<u8> {
+    let mut result = Vec::new();
+    result.extend_from_slice(&buf);
+    result.extend_from_slice(&vec![0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01]);
+    result.extend_from_slice(&vec![0x00, 0x00, 0x02, 0x58]); // valid for 600 secs
+    result.extend_from_slice(&vec![0x00, 0x04, 0x01, 0x01, 0x01, 0x01]);
+    result
 }
 
 struct Question {
