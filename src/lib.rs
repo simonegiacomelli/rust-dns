@@ -19,6 +19,10 @@ fn start_dns_server(port: u16) {
     }
 }
 
+fn decode_domain(buf: &[u8]) -> Result<Vec<String>, String> {
+    return Err("todo".to_string());
+}
+
 #[cfg(test)]
 mod tests {
     use std::process::Command;
@@ -67,5 +71,13 @@ mod tests {
 
         assert!(output.status.success());
         assert_eq!(actual_ip.trim(), expected_ip)
+    }
+
+    #[test]
+    fn test_decode_domain() {
+        let buf: Vec<u8> = vec![0x2, 'x' as u8, 'y' as u8, 0x1, 'z' as u8, 0x0];
+        let actual = decode_domain(&buf).unwrap();
+        let expected = vec!["xy".to_string(), "z".to_string()];
+        assert_eq!(expected, actual)
     }
 }
