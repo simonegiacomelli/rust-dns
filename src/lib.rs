@@ -30,6 +30,9 @@ fn start_dns_server(port: u16) {
 fn build_response(buf: &[u8]) -> Vec<u8> {
     let mut result = Vec::new();
     result.extend_from_slice(&buf);
+    result[2] = 0x81;
+    result[3] = 0x80;
+    result[7] = 0x01;
     result.extend_from_slice(&vec![0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01]);
     result.extend_from_slice(&vec![0x00, 0x00, 0x02, 0x58]); // valid for 600 secs
     result.extend_from_slice(&vec![0x00, 0x04, 0x01, 0x01, 0x01, 0x01]);
