@@ -19,9 +19,10 @@ fn start_dns_server(port: u16) {
     loop {
         let (size, origin) = socket.recv_from(&mut buf).unwrap();
         let x = &buf[0..size];
-        println!("size={} origin={} buffer=`{:02X?}`", size, origin, x);
+        println!(" origin={} size={} buffer={:02X?}", origin, x.len(), x);
         let response = build_response(x);
-        println!("response response");
+        println!("response size={} buffer={:02X?}", response.len(), response);
+
         socket.send_to(&response, origin).unwrap();
     }
 }
