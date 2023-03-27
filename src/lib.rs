@@ -27,13 +27,15 @@ fn start_dns_server(port: u16) {
     }
 }
 
-fn build_response(query: &[u8]) -> Vec<u8> {
+fn build_response(query_buf: &[u8]) -> Vec<u8> {
     // let mut result = example_com_response();
     // result[0] = buf[0];
     // result[1] = buf[1];
     // return result;
     let mut result = Vec::new();
-    result.extend_from_slice(&query);
+    let query = decode_query(query_buf);
+    let question_index_end = query.question_index_end();
+    result.extend_from_slice(&query_buf[0..question_index_end]);
     result[2] = 0x81;
     result[3] = 0x80;
     result[7] = 0x01;
@@ -90,8 +92,13 @@ struct Query {
     questions: Vec<Question>,
 }
 
+impl Query {
+    fn question_index_start() -> usize { 12 }
+    fn question_index_end(&self) -> usize { Query::question_index_start() + &self.questions.size() }
+}
+
 fn decode_query(buf: &[u8]) -> Query {
-    Query { questions: decode_questions(&buf[12..]).unwrap() }
+    Query { questions: decode_questions(&buf[Query::question_index_start()..]).unwrap() }
 }
 
 #[cfg(test)]
