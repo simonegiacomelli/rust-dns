@@ -27,13 +27,13 @@ fn start_dns_server(port: u16) {
     }
 }
 
-fn build_response(buf: &[u8]) -> Vec<u8> {
-    let mut result = packet_response_example_com();
-    result[0] = buf[0];
-    result[1] = buf[1];
-    return result;
+fn build_response(query: &[u8]) -> Vec<u8> {
+    // let mut result = example_com_response();
+    // result[0] = buf[0];
+    // result[1] = buf[1];
+    // return result;
     let mut result = Vec::new();
-    result.extend_from_slice(&buf);
+    result.extend_from_slice(&query);
     result[2] = 0x81;
     result[3] = 0x80;
     result[7] = 0x01;
@@ -43,10 +43,26 @@ fn build_response(buf: &[u8]) -> Vec<u8> {
     result
 }
 
-fn packet_response_example_com() -> Vec<u8> { vec![0x18, 0x23, 0x84, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x07, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x01, 0x90, 0x00, 0x04, 0x01, 0x01, 0x01, 0x01] }
+fn example_com_response() -> Vec<u8> { vec![0x18, 0x23, 0x84, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x07, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x01, 0x90, 0x00, 0x04, 0x01, 0x01, 0x01, 0x01] }
 
 struct Question {
     qname: Vec<String>,
+    qtype: u16,
+    qclass: u16,
+}
+
+trait QuestionSize {
+    fn size(&self) -> usize;
+}
+
+impl QuestionSize for Vec<Question> {
+    fn size(&self) -> usize {
+        let qname_len: usize = self.into_iter().map(|i| {
+            println!("len={}", i.qname.len());
+            i.qname.len()
+        }).sum();
+        qname_len + self.len() + 1 + 2 + 2 // last empty string,  qtype,  qclass;
+    }
 }
 
 fn decode_questions(buf: &[u8]) -> Result<Vec<Question>, String> {
@@ -54,14 +70,16 @@ fn decode_questions(buf: &[u8]) -> Result<Vec<Question>, String> {
     let mut result: Vec<String> = Vec::new();
     loop {
         let mut length = buf[index] as usize;
-        if length == 0 { break; };
         index += 1;
+        if length == 0 { break; };
         let slice = &buf[index..(index + length)];
         let qname = std::str::from_utf8(&slice).unwrap().to_string();
         result.push(qname);
         index += length;
     }
-    return Ok(vec![Question { qname: result }]);
+    let qtype = (buf[index] as u16) << 8 | buf[index + 1] as u16;
+    let qclass = (buf[index + 2] as u16) << 8 | buf[index + 3] as u16;
+    return Ok(vec![Question { qname: result, qtype, qclass }]);
 }
 
 struct Query {
@@ -78,7 +96,7 @@ mod tests {
     use crate::find_udp_port::find_port;
     use super::*;
 
-    fn packet_example_com() -> Vec<u8> { vec![0xE2, 0x61, 0x01, 0x20, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x07, 0x65, 0x78, 0x61, 0x6D, 0x70, 0x6C, 0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x29, 0x04, 0xD0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x00, 0x0A, 0x00, 0x08, 0x1D, 0xB6, 0x2D, 0x09, 0x30, 0xD8, 0x1A, 0xFB] }
+    fn example_com_query() -> Vec<u8> { vec![0xE2, 0x61, 0x01, 0x20, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x07, 0x65, 0x78, 0x61, 0x6D, 0x70, 0x6C, 0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x29, 0x04, 0xD0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x00, 0x0A, 0x00, 0x08, 0x1D, 0xB6, 0x2D, 0x09, 0x30, 0xD8, 0x1A, 0xFB] }
 
     #[test]
     fn test_local_resolver() {
@@ -124,18 +142,21 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_domain() {
-        let buf: Vec<u8> = vec![0x2, 'x' as u8, 'y' as u8, 0x1, 'z' as u8, 0x0];
+    fn test_decode_questions() {
+        let buf: Vec<u8> = vec![0x2, 'x' as u8, 'y' as u8, 0x1, 'z' as u8, 0x0, 0x01, 0x56, 0x02, 0xFF];
         let questions = decode_questions(&buf).unwrap();
         assert_eq!(1, questions.len());
-        let actual = &questions[0].qname;
+        let question = &questions[0];
         let expected = &vec!["xy".to_string(), "z".to_string()];
-        assert_eq!(expected, actual)
+        assert_eq!(expected, &question.qname);
+        assert_eq!(342, question.qtype);
+        assert_eq!(767, question.qclass);
+        assert_eq!(3 + 2 + 1 + 2 + 2, questions.size())
     }
 
     #[test]
     fn test_decode_query() {
-        let query = decode_query(&packet_example_com());
+        let query = decode_query(&example_com_query());
         let questions = query.questions;
         assert_eq!(1, questions.len());
         let actual = &questions[0].qname;
