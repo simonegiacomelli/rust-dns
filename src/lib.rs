@@ -51,17 +51,21 @@ struct Question {
     qclass: u16,
 }
 
+impl Question {
+    fn size(&self) -> usize {
+        let qname = &self.qname;
+        let qname_len: usize = qname.into_iter().map(|part| { part.len() }).sum();
+        qname_len + qname.len() + 1 + 2 + 2
+    }
+}
+
 trait QuestionSize {
     fn size(&self) -> usize;
 }
 
 impl QuestionSize for Vec<Question> {
     fn size(&self) -> usize {
-        let qname_len: usize = self.into_iter().map(|i| {
-            println!("len={}", i.qname.len());
-            i.qname.len()
-        }).sum();
-        qname_len + self.len() + 1 + 2 + 2 // last empty string,  qtype,  qclass;
+        self.into_iter().map(|i| { i.size() }).sum()
     }
 }
 
