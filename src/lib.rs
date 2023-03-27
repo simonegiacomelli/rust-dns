@@ -36,9 +36,10 @@ fn build_response(query_buf: &[u8]) -> Vec<u8> {
     let query = decode_query(query_buf);
     let question_index_end = query.question_index_end();
     result.extend_from_slice(&query_buf[0..question_index_end]);
-    result[2] = 0x81;
-    result[3] = 0x80;
+    result[2] = 0x84;
+    result[3] = 0x00;
     result[7] = 0x01;
+    result[11] = 0x00;
     result.extend_from_slice(&vec![0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01]);
     result.extend_from_slice(&vec![0x00, 0x00, 0x02, 0x58]); // valid for 600 secs
     result.extend_from_slice(&vec![0x00, 0x04, 0x01, 0x01, 0x01, 0x01]);
